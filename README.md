@@ -31,7 +31,7 @@ SpotifyDataAnalyzer is a tool that utilizes user data obtained from Spotify to a
 
 ## Usage
 
-1. Place your Spotify data JSON file(s) in the `data/` directory.
+1. Place your Spotify data JSON file(s) in the `data/` directory(you will have to create the directory yourself).
 2. Run the script:
    ```bash
    python src/main.py
