@@ -3,3 +3,4 @@
 data
 list.txt
 src/__pycache__
+src/secret.py

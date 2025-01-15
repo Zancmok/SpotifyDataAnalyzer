@@ -22,3 +22,4 @@ class SongData:
     spotify_uri: str
     times_played: int
     ms_played: int
+    artist: str

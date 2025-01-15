@@ -12,6 +12,9 @@ Functions:
 
 import os
 import json
+import requests
+import base64
+import secret
 from typing import Optional, Any
 from SpotifyPlay import SpotifyPlay
 from UserData import UserData
@@ -78,7 +81,8 @@ def generate_data(data_directory_path: str = "..\\data", blacklist: Optional[lis
                 shuffle=content["shuffle"],
                 skipped=content["skipped"],
                 offline=content["offline"],
-                name=content["master_metadata_track_name"] or content["episode_name"]
+                name=content["master_metadata_track_name"] or content["episode_name"],
+                artist=content["master_metadata_album_artist_name"] or "__unknown__"
             ))
 
         out.append(UserData(
@@ -110,7 +114,8 @@ def get_top_songs(data: list[UserData], song_amount: int = 100) -> list[SongData
                     name=play.name,
                     spotify_uri=play.uri,
                     times_played=1,
-                    ms_played=play.ms_played
+                    ms_played=play.ms_played,
+                    artist=play.artist
                 )
             else:
                 songs[play.uri].times_played += 1
@@ -126,6 +131,48 @@ def get_top_songs(data: list[UserData], song_amount: int = 100) -> list[SongData
     return out[:song_amount]
 
 
+def get_spotify_token() -> str:
+    """
+
+    :return:
+    """
+
+    TOKEN_URL: str = "https://accounts.spotify.com/api/token"
+
+    auth_string: str = f"{secret.CLIENT_ID}:{secret.CLIENT_SECRET}"
+
+    response: Any = requests.post(
+        TOKEN_URL,
+        headers={
+            'Authorization': f'Basic {base64.b64encode(auth_string.encode('ascii')).decode('ascii')}'
+        },
+        data={
+            'grant_type': 'client_credentials'
+        }
+    ).json()
+
+    return response['access_token']
+
+
+def generate_playlist(songs: list[SongData], playlist_id: str) -> None:
+    """
+    .
+    """
+
+    BASE_URL: str = "https://api.spotify.com/v1"
+
+    token: str = get_spotify_token()
+
+    playlist: dict = requests.get(
+        f"{BASE_URL}/playlists/{playlist_id}",
+        headers={
+            "Authorization": f"Bearer {token}"
+        }
+    ).json()
+
+    print(playlist)
+
+
 def main() -> None:
     """
 
@@ -134,10 +181,16 @@ def main() -> None:
 
     data: list[UserData] = generate_data()
 
-    songs: list[SongData] = get_top_songs(data, song_amount=800)
+    USER_AMOUNT: int = 9
+    SONGS_PER_USER: int = 50
+    songs: list[SongData] = get_top_songs(data, song_amount=USER_AMOUNT * SONGS_PER_USER)
 
+    """
     for i, song in enumerate(songs):
-        print(f"{i + 1:4d} | {song.name:50s} | {song.ms_played:50d}")
+        print(f"{i + 1:4d} | {song.name:50s} | {song.artist:50s} | {song.ms_played:50d}")
+    """
+
+    generate_playlist(songs, secret.PLAYLIST_ID)
 
 
 if __name__ == '__main__':

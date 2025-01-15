@@ -36,3 +36,4 @@ class SpotifyPlay:
     skipped: bool
     offline: bool
     name: str
+    artist: str
