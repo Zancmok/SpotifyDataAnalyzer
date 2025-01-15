@@ -35,3 +35,4 @@ class SpotifyPlay:
     shuffle: bool
     skipped: bool
     offline: bool
+    name: str
