@@ -12,7 +12,11 @@ Functions:
 
 import os
 import json
-import requests
+import time
+
+from spotipy import Spotify
+from spotipy.oauth2 import SpotifyOAuth
+from spotipy.exceptions import SpotifyException
 import base64
 import secret
 from typing import Optional, Any
@@ -131,46 +135,42 @@ def get_top_songs(data: list[UserData], song_amount: int = 100) -> list[SongData
     return out[:song_amount]
 
 
-def get_spotify_token() -> str:
-    """
-
-    :return:
-    """
-
-    TOKEN_URL: str = "https://accounts.spotify.com/api/token"
-
-    auth_string: str = f"{secret.CLIENT_ID}:{secret.CLIENT_SECRET}"
-
-    response: Any = requests.post(
-        TOKEN_URL,
-        headers={
-            'Authorization': f'Basic {base64.b64encode(auth_string.encode('ascii')).decode('ascii')}'
-        },
-        data={
-            'grant_type': 'client_credentials'
-        }
-    ).json()
-
-    return response['access_token']
-
-
 def generate_playlist(songs: list[SongData], playlist_id: str) -> None:
     """
     .
     """
 
-    BASE_URL: str = "https://api.spotify.com/v1"
+    spotify: Spotify = Spotify(
+        auth_manager=SpotifyOAuth(
+            client_id=secret.CLIENT_ID,
+            client_secret=secret.CLIENT_SECRET,
+            redirect_uri="http://localhost:8888/callback",
+            scope="playlist-modify-public playlist-modify-private"
+        )
+    )
 
-    token: str = get_spotify_token()
+    spotify.playlist_replace_items(
+        playlist_id=playlist_id,
+        items=[]
+    )
 
-    playlist: dict = requests.get(
-        f"{BASE_URL}/playlists/{playlist_id}",
-        headers={
-            "Authorization": f"Bearer {token}"
-        }
-    ).json()
+    for i in range(0, len(songs), 100):
+        while True:
+            try:
+                spotify.playlist_add_items(
+                    playlist_id=playlist_id,
+                    items=[song.spotify_uri for song in songs[i:i + 100]]
+                )
 
-    print(playlist)
+                break
+            except SpotifyException as e:
+                if e.http_status == 429:
+                    retry_after: int = 60
+
+                    print(f"Rate limit hit. Retrying in {retry_after} seconds...")
+                    time.sleep(retry_after)
+                else:
+                    raise
 
 
 def main() -> None:
